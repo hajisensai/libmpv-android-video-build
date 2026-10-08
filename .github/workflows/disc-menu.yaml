@@ -38,13 +38,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y autoconf automake libtool pkg-config ninja-build nasm unzip zip cmake
           python -m pip install meson==1.9.1 jsonschema==4.23.0 jinja2==3.1.6
-          sdkmanager 'ndk;25.2.9519653'
+          sdkmanager 'ndk;27.3.13750724'
       - name: Build and verify ${{ matrix.abi }}
         env:
           cores: '4'
         run: |
           set -o pipefail
-          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/25.2.9519653"
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.3.13750724"
           bash buildscripts/bundle_disc_menu.sh '${{ matrix.arch }}' '${{ matrix.abi }}' 2>&1 | tee build-${{ matrix.abi }}.log
       - uses: actions/upload-artifact@v4
         if: always()

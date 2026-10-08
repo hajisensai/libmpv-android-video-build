@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 arch=$1
 abi=$2
 sdk=$ANDROID_HOME
-export ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-$sdk/ndk/25.2.9519653}"
+export ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-$sdk/ndk/27.3.13750724}"
 mkdir -p sdk
 ln -s "$sdk" sdk/android-sdk-linux
 chmod +x scripts/*.sh include/*.sh

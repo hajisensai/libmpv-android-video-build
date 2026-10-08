@@ -1,0 +1,13 @@
+diff --git a/library/aesce.c b/library/aesce.c
+index fe056dc..473e6b3 100644
+--- a/library/aesce.c
++++ b/library/aesce.c
+@@ -53,7 +53,7 @@
+ #       if __clang_major__ < 4
+ #           error "A more recent Clang is required for MBEDTLS_AESCE_C"
+ #       endif
+-#       pragma clang attribute push (__attribute__((target("crypto"))), apply_to=function)
++#       pragma clang attribute push (__attribute__((target("aes"))), apply_to=function)
+ #       define MBEDTLS_POP_TARGET_PRAGMA
+ #   elif defined(__GNUC__)
+ #       if __GNUC__ < 6

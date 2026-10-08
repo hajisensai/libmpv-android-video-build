@@ -43,6 +43,7 @@ cpuflags=
 	--enable-parsers \
 	\
 	--disable-muxers \
+	--enable-muxer=matroska \
 	--disable-encoders \
 	--disable-protocols \
 	--disable-devices \

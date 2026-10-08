@@ -19,13 +19,14 @@ unset CC CXX # meson wants these unset
 meson setup $build --cross-file "$prefix_dir"/crossfile.txt \
 	--prefer-static \
 	--default-library shared \
+	-Db_lundef=true \
 	-Dgpl=false \
 	-Dlibmpv=true \
  	-Dlua=disabled \
  	-Dcplayer=false \
 	-Diconv=disabled \
 	-Dvulkan=disabled \
-   	-Dlibplacebo=disabled \
+	-Dlibbluray=enabled \
  	-Dmanpage-build=disabled
 
 ninja -C $build -j$cores

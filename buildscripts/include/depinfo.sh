@@ -3,7 +3,7 @@
 ## Dependency versions
 
 v_sdk=9123335_latest
-v_ndk=25.2.9519653
+v_ndk=27.3.13750724
 v_sdk_build_tools=33.0.2
 
 v_libass=0.17.1
@@ -18,11 +18,13 @@ v_libxml2=2.10.3
 # fixes Hibiki needs: magicyuv slice_height/median (the OOB-write RCE that a
 # crafted mkv/mov/avi can reach), vp9 dimension rollback/realloc, mov CENC
 # 64-bit subsample bounds, mpegts descriptor accounting, plus a large batch of
-# matroskadec bounds checks. Staying inside 6.x keeps the FFmpeg API stable, so
-# mpv is untouched; both ffmpeg patches below still apply cleanly (verified with
+# matroskadec bounds checks. Staying inside 6.x keeps the FFmpeg API stable;
+# the existing FFmpeg patches still apply cleanly (verified with
 # patch --dry-run against the n6.1.6 tree).
 v_ffmpeg=6.1.6
-v_mpv=78d43740f52db817d98bcf24fb30a76ab6fa13ff
+v_mpv=36abaa32d00a7229ee206aae12dc0e97e7962dca
+v_libbluray=1.5.0
+v_libplacebo=cee9b076f2c63104ccfd497fa79c39a867293ec4
 v_libogg=1.3.5
 v_libvorbis=1.3.7
 v_libvpx=1.13
@@ -45,8 +47,10 @@ dep_harfbuzz=()
 dep_libass=(freetype fribidi harfbuzz)
 dep_lua=()
 dep_shaderc=()
+dep_libbluray=(freetype libxml2)
+dep_libplacebo=()
 if [ -n "${ENCODERS_GPL+x}" ]; then
-	dep_mpv=(ffmpeg libass fftools_ffi)
+	dep_mpv=(ffmpeg libass libbluray libplacebo fftools_ffi)
 else
-	dep_mpv=(ffmpeg libass)
+	dep_mpv=(ffmpeg libass libbluray libplacebo)
 fi

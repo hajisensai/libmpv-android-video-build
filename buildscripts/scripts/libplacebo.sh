@@ -14,3 +14,7 @@ meson setup "$build" --cross-file "$prefix_dir/crossfile.txt" \
     -Ddovi=enabled -Dunwind=disabled -Dxxhash=disabled -Ddemos=false -Dtests=false
 ninja -C "$build" -j"$cores"
 DESTDIR="$prefix_dir" ninja -C "$build" install
+# mpv links with the C driver. The static libplacebo archive contains C++
+# charconv code but its generated pkg-config file omits the C++ runtime.
+# Keep that runtime private/static, avoiding an unbundled libc++_shared.so.
+printf '\nLibs.private: -lc++_static -lc++abi -lunwind\n' >> "$prefix_dir/lib/pkgconfig/libplacebo.pc"

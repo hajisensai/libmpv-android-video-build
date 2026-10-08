@@ -113,7 +113,7 @@ index 2889d352b..cff14a9da 100644
  void disc_nav_destroy(struct MPContext *mpctx);
  struct stream *disc_nav_get_stream(struct MPContext *mpctx);
 diff --git a/player/discnav.c b/player/discnav.c
-index 6eb885edf..a95d33a0a 100644
+index 6eb885edf..1f60fe8fd 100644
 --- a/player/discnav.c
 +++ b/player/discnav.c
 @@ -37,6 +37,7 @@
@@ -133,16 +133,20 @@ index 6eb885edf..a95d33a0a 100644
      bool drain_was_pending; // last poll saw a boundary awaiting resync
  
      // DVD-only: dvd_subtitle track we force-selected for the menu, and the
-@@ -170,6 +173,8 @@ static void push_bd_overlay(struct MPContext *mpctx, struct stream *s,
-     if (!visible) {
-         if (st->overlay_visible)
-             osd_set_bitmaps(mpctx->osd, OSDTYPE_DISC_MENU, NULL);
-+        st->input_active = false;
-+        st->generation_seen = st->generation_accepted = false;
-         st->bd_last_change_id = 0;
-         st->bd_last_vo_res = (struct mp_osd_res){0};
+@@ -95,10 +98,10 @@ void disc_nav_reset(struct MPContext *mpctx)
+     struct disc_nav_state *st = mpctx->disc_nav;
+     if (!st)
          return;
-@@ -451,6 +456,13 @@ static void ensure_menu_sub_selection(struct MPContext *mpctx, bool menu_on)
+-    if (st->overlay_visible) {
++    if (st->overlay_visible)
+         osd_set_bitmaps(mpctx->osd, OSDTYPE_DISC_MENU, NULL);
++    if (st->input_active)
+         mp_input_disable_section(mpctx->input, "discnav");
+-    }
+     mp_image_unrefp(&st->bd_image);
+     *st = (struct disc_nav_state){0};
+ }
+@@ -451,6 +454,13 @@ static void ensure_menu_sub_selection(struct MPContext *mpctx, bool menu_on)
      }
  }
  
@@ -156,16 +160,21 @@ index 6eb885edf..a95d33a0a 100644
  void disc_nav_update(struct MPContext *mpctx)
  {
      struct stream *s = disc_nav_get_stream(mpctx);
-@@ -487,6 +499,8 @@ void disc_nav_update(struct MPContext *mpctx)
-             mp_input_disable_section(mpctx->input, "discnav");
+@@ -484,9 +494,12 @@ void disc_nav_update(struct MPContext *mpctx)
+     if (!have) {
+         if (st->overlay_visible) {
+             osd_set_bitmaps(mpctx->osd, OSDTYPE_DISC_MENU, NULL);
+-            mp_input_disable_section(mpctx->input, "discnav");
              st->overlay_visible = false;
          }
++        if (st->input_active)
++            mp_input_disable_section(mpctx->input, "discnav");
 +        st->input_active = false;
 +        st->generation_seen = st->generation_accepted = false;
          st->bd_last_change_id = 0;
          st->bd_last_vo_res = (struct mp_osd_res){0};
          st->menu_selected_track = NULL;
-@@ -506,12 +520,34 @@ void disc_nav_update(struct MPContext *mpctx)
+@@ -506,12 +519,37 @@ void disc_nav_update(struct MPContext *mpctx)
      }
  
      check_async_discontinuity(mpctx, s, &nav);
@@ -175,9 +184,12 @@ index 6eb885edf..a95d33a0a 100644
 +        if (!st->generation_seen || st->observed_generation != nav.generation) {
 +            st->observed_generation = nav.generation;
 +            st->generation_seen = true;
-+            st->generation_restarting = !mpctx->restart_complete;
++            st->generation_restarting = nav.drain_pending || !mpctx->restart_complete;
 +        }
-+        if (!mpctx->restart_complete)
++        // A short resync can begin at the end of one playloop and finish
++        // before disc_nav_update in the next. The drain boundary is the
++        // reliable evidence, not merely polling restart_complete=false.
++        if (nav.drain_pending || !mpctx->restart_complete)
 +            st->generation_restarting = true;
 +        if ((!st->generation_accepted || st->generation_restarting) &&
 +            mpctx->restart_complete && !nav.drain_pending && nav.disc_playlist >= 0)
@@ -202,7 +214,7 @@ index 6eb885edf..a95d33a0a 100644
  
      if (is_bd) {
          push_bd_overlay(mpctx, s, &nav, visible);
-@@ -526,14 +562,14 @@ void disc_nav_update(struct MPContext *mpctx)
+@@ -526,14 +564,14 @@ void disc_nav_update(struct MPContext *mpctx)
          osd_changed(mpctx->osd);
      }
  

@@ -44,6 +44,7 @@ jobs:
           cores: '4'
         run: |
           set -o pipefail
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/25.2.9519653"
           bash buildscripts/bundle_disc_menu.sh '${{ matrix.arch }}' '${{ matrix.abi }}' 2>&1 | tee build-${{ matrix.abi }}.log
       - uses: actions/upload-artifact@v4
         if: always()

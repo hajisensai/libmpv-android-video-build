@@ -8,11 +8,11 @@ export ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-$sdk/ndk/25.2.9519653}"
 mkdir -p sdk
 ln -s "$sdk" sdk/android-sdk-linux
 chmod +x scripts/*.sh include/*.sh
-bash include/download-deps.sh
-bash patch.sh
+bash -e include/download-deps.sh
+bash -e patch.sh
 cp flavors/full.sh scripts/ffmpeg.sh
 chmod +x scripts/ffmpeg.sh
-bash build.sh --arch "$arch"
+bash -e build.sh --arch "$arch"
 
 out="$PWD/artifacts/disc-menu"
 mkdir -p "$out" package
@@ -40,8 +40,14 @@ cp "$lib" "package/lib/$abi/libmpv.so"
 "$bin/llvm-strip" --strip-unneeded "package/lib/$abi/libmpv.so"
 (cd package && zip -qr "$out/full-$abi.jar" "lib/$abi")
 python3 - "$out" <<'PY'
-import hashlib, json, pathlib, sys
+import hashlib, json, pathlib, subprocess, sys
 p = pathlib.Path(sys.argv[1])
 checksums = {f.name: hashlib.sha256(f.read_bytes()).hexdigest() for f in p.glob('full-*.jar')}
 (p/'sha256.json').write_text(json.dumps(checksums, indent=2)+'\n')
+provenance = {
+    'build_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+    'mpv_commit': subprocess.check_output(['git', '-C', 'deps/mpv', 'rev-parse', 'HEAD'], text=True).strip(),
+    'patches': {str(f): hashlib.sha256(f.read_bytes()).hexdigest() for f in pathlib.Path('patches/mpv').glob('*.patch')},
+}
+(p/'provenance.json').write_text(json.dumps(provenance, indent=2)+'\n')
 PY

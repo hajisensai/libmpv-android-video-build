@@ -37,7 +37,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y autoconf automake libtool pkg-config ninja-build nasm unzip zip cmake
-          python -m pip install meson==1.9.1
+          python -m pip install meson==1.9.1 jsonschema==4.23.0 jinja2==3.1.6
           sdkmanager 'ndk;25.2.9519653'
       - name: Build and verify ${{ matrix.abi }}
         env:

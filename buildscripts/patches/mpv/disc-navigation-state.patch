@@ -114,7 +114,7 @@ index 2889d352b..cff14a9da 100644
  void disc_nav_destroy(struct MPContext *mpctx);
  struct stream *disc_nav_get_stream(struct MPContext *mpctx);
 diff --git a/player/discnav.c b/player/discnav.c
-index 6eb885edf..1f60fe8fd 100644
+index 6eb885edf..8f63030d3 100644
 --- a/player/discnav.c
 +++ b/player/discnav.c
 @@ -37,6 +37,7 @@
@@ -147,7 +147,48 @@ index 6eb885edf..1f60fe8fd 100644
      mp_image_unrefp(&st->bd_image);
      *st = (struct disc_nav_state){0};
  }
-@@ -451,6 +454,13 @@ static void ensure_menu_sub_selection(struct MPContext *mpctx, bool menu_on)
+@@ -308,14 +311,28 @@ static void sync_disc_track_selection(struct MPContext *mpctx, struct stream *s,
+     st->last_track_disc_id = nav->discontinuity_id;
+     st->track_sync_seen = true;
+ 
+-    if (!first && hopped && nav->no_audio &&
+-        mpctx->opts->stream_id[0][STREAM_AUDIO] != -2)
++    // Restoring aid/sid=auto hands selection back to the disc even if its
++    // desired IDs have not changed since an explicit player override. Compare
++    // actual tracks too: cached disc events alone cannot detect that handoff.
++    struct track *desired_audio = find_track_by_demuxer_id(mpctx, STREAM_AUDIO,
++                                                           nav->active_audio_id);
++    struct track *desired_sub = find_track_by_demuxer_id(mpctx, STREAM_SUB,
++                                                         nav->active_sub_id);
++    bool audio_mismatch = desired_audio &&
++                          mpctx->current_track[0][STREAM_AUDIO] != desired_audio;
++    bool sub_mismatch = nav->sub_visible
++        ? desired_sub && mpctx->current_track[0][STREAM_SUB] != desired_sub
++        : mpctx->current_track[0][STREAM_SUB] != NULL;
++
++    if (nav->no_audio && mpctx->opts->stream_id[0][STREAM_AUDIO] != -2 &&
++        ((!first && hopped) || mpctx->opts->stream_id[0][STREAM_AUDIO] == -1))
+     {
+         // The disc hopped into a domain without any audio stream. Deselect audio.
+         if (mpctx->current_track[0][STREAM_AUDIO])
+             mp_switch_track_n(mpctx, 0, STREAM_AUDIO, NULL, 0);
+         st->last_audio_id = -1;
+-    } else if (!first && (hopped || nav->active_audio_id != st->last_audio_id) &&
++    } else if (!first && (hopped || nav->active_audio_id != st->last_audio_id ||
++                          audio_mismatch) &&
+         mpctx->opts->stream_id[0][STREAM_AUDIO] == -1)
+     {
+         struct track *t = find_track_by_demuxer_id(mpctx, STREAM_AUDIO,
+@@ -349,7 +366,7 @@ static void sync_disc_track_selection(struct MPContext *mpctx, struct stream *s,
+ 
+     if (!first && (hopped ||
+                    nav->active_sub_id != st->last_sub_id ||
+-                   nav->sub_visible != st->last_sub_visible) &&
++                   nav->sub_visible != st->last_sub_visible || sub_mismatch) &&
+         !nav->menu_active && !st->menu_selected_track &&
+         mpctx->opts->stream_id[0][STREAM_SUB] == -1)
+     {
+@@ -451,6 +468,13 @@ static void ensure_menu_sub_selection(struct MPContext *mpctx, bool menu_on)
      }
  }
  
@@ -161,7 +202,7 @@ index 6eb885edf..1f60fe8fd 100644
  void disc_nav_update(struct MPContext *mpctx)
  {
      struct stream *s = disc_nav_get_stream(mpctx);
-@@ -484,9 +494,12 @@ void disc_nav_update(struct MPContext *mpctx)
+@@ -484,9 +508,12 @@ void disc_nav_update(struct MPContext *mpctx)
      if (!have) {
          if (st->overlay_visible) {
              osd_set_bitmaps(mpctx->osd, OSDTYPE_DISC_MENU, NULL);
@@ -175,7 +216,7 @@ index 6eb885edf..1f60fe8fd 100644
          st->bd_last_change_id = 0;
          st->bd_last_vo_res = (struct mp_osd_res){0};
          st->menu_selected_track = NULL;
-@@ -506,12 +519,37 @@ void disc_nav_update(struct MPContext *mpctx)
+@@ -506,12 +533,37 @@ void disc_nav_update(struct MPContext *mpctx)
      }
  
      check_async_discontinuity(mpctx, s, &nav);
@@ -215,7 +256,7 @@ index 6eb885edf..1f60fe8fd 100644
  
      if (is_bd) {
          push_bd_overlay(mpctx, s, &nav, visible);
-@@ -526,14 +564,14 @@ void disc_nav_update(struct MPContext *mpctx)
+@@ -526,14 +578,14 @@ void disc_nav_update(struct MPContext *mpctx)
          osd_changed(mpctx->osd);
      }
  

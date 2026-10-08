@@ -33,7 +33,6 @@ jobs:
           sdkmanager 'ndk;25.2.9519653'
       - name: Build and verify ${{ matrix.abi }}
         env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/25.2.9519653
           cores: '4'
         run: |
           set -o pipefail

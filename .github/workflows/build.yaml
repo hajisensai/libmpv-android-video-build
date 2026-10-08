@@ -17,6 +17,8 @@ permissions:
 
 jobs:
   build:
+    # The navigation branch has a dedicated artifact-only four-ABI workflow.
+    if: github.head_ref != 'codex/bluray-disc-menu' && github.ref != 'refs/heads/codex/bluray-disc-menu'
     name: Build
     runs-on: ubuntu-22.04
     steps:

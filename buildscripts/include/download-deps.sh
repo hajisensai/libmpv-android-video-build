@@ -49,8 +49,23 @@ Shaderc sources are provided by the NDK.
 see <ndk>/sources/third_party/shaderc
 HEREDOC
 
+# libbluray release includes its pinned libudfread subproject (ISO support).
+if [ ! -d libbluray ]; then
+    $WGET "https://download.videolan.org/pub/videolan/libbluray/$v_libbluray/libbluray-$v_libbluray.tar.xz"
+    echo "f676408e91a5d321abf8b8d4dfdae36205c297dab5c54c3ec519639025f474a2  libbluray-$v_libbluray.tar.xz" | sha256sum -c -
+    tar -xf "libbluray-$v_libbluray.tar.xz"
+    mv "libbluray-$v_libbluray" libbluray
+fi
+
+# libplacebo is mandatory for the navigation-capable mpv revision.
+if [ ! -d libplacebo ]; then
+    git clone https://code.videolan.org/videolan/libplacebo.git libplacebo
+    git -C libplacebo checkout --detach "$v_libplacebo"
+    git -C libplacebo submodule update --init --recursive --depth 1
+fi
+
 # mpv
-[ ! -d mpv ] && git clone https://github.com/mpv-player/mpv.git mpv && cd mpv && git reset --hard 78d43740f52db817d98bcf24fb30a76ab6fa13ff && cd ..
+[ ! -d mpv ] && git clone https://github.com/mpv-player/mpv.git mpv && cd mpv && git reset --hard "$v_mpv" && cd ..
 
 # fftools_ffi
 [ ! -d fftools_ffi ] && git clone https://github.com/moffatman/fftools-ffi.git fftools_ffi && cd fftools_ffi && git reset --hard 9b0d4da026d9c830702ec043c1f1f98d407025af && cd ..

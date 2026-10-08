@@ -1,12 +1,14 @@
+diff --git a/video/out/gpu/shader_cache.c b/video/out/gpu/shader_cache.c
+index 0f800cdb7..df1ee8ec8 100644
 --- a/video/out/gpu/shader_cache.c
 +++ b/video/out/gpu/shader_cache.c
-@@ -403,6 +403,17 @@
+@@ -413,6 +413,17 @@ void gl_sc_uniform_vec3(struct gl_shader_cache *sc, char *name, float f[3])
      u->v.f[2] = f[2];
  }
  
 +void gl_sc_uniform_vec4(struct gl_shader_cache *sc, char *name, float f[4])
 +{
-+    struct sc_uniform *u = find_uniform(sc, name);
++    struct sc_uniform *u = find_uniform(sc, bstr0(name));
 +    u->input.type = RA_VARTYPE_FLOAT;
 +    u->input.dim_v = 4;
 +    u->glsl_type = "vec4";
@@ -18,38 +20,36 @@
  static void transpose2x2(float r[2 * 2])
  {
      MPSWAP(float, r[0+2*1], r[1+2*0]);
+diff --git a/video/out/gpu/shader_cache.h b/video/out/gpu/shader_cache.h
+index 3b997651b..d76f05484 100644
 --- a/video/out/gpu/shader_cache.h
 +++ b/video/out/gpu/shader_cache.h
-@@ -39,6 +39,7 @@
- void gl_sc_uniform_i(struct gl_shader_cache *sc, char *name, int f);
+@@ -41,6 +41,7 @@ void gl_sc_uniform_f_bstr(struct gl_shader_cache *sc, struct bstr name, float f)
+ void gl_sc_uniform_i_bstr(struct gl_shader_cache *sc, struct bstr name, int f);
  void gl_sc_uniform_vec2(struct gl_shader_cache *sc, char *name, float f[2]);
  void gl_sc_uniform_vec3(struct gl_shader_cache *sc, char *name, float f[3]);
 +void gl_sc_uniform_vec4(struct gl_shader_cache *sc, char *name, float f[4]);
  void gl_sc_uniform_mat2(struct gl_shader_cache *sc, char *name,
                          bool transpose, float *v);
  void gl_sc_uniform_mat3(struct gl_shader_cache *sc, char *name,
+diff --git a/video/out/gpu/video.c b/video/out/gpu/video.c
+index 4d90d447a..d1afefe65 100644
 --- a/video/out/gpu/video.c
 +++ b/video/out/gpu/video.c
-@@ -24,6 +24,14 @@
+@@ -24,6 +24,9 @@
  
  #include <libavutil/common.h>
  #include <libavutil/lfg.h>
-+#include <libavutil/version.h>
-+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(57, 16, 100)
 +#include <libavutil/dovi_meta.h>
++#include <libavutil/frame.h>
 +#include <libavutil/rational.h>
-+#define HAVE_GL_DOVI 1
-+#else
-+#define HAVE_GL_DOVI 0
-+#endif
  
  #include "video.h"
  
-@@ -2328,6 +2336,178 @@
+@@ -2542,6 +2545,186 @@ static void pass_read_tex(struct gl_video *p, struct ra_tex *tex)
      copy_image(p, &(int){0}, img);
  }
  
-+#if HAVE_GL_DOVI
 +// Dolby Vision profile 5 (IPTPQc2, no backwards compatible base layer). Its
 +// samples are not YCbCr: they only become meaningful after the per-frame RPU
 +// reshaping and the IPT -> LMS -> RGB decode, which vo_gpu_next gets from
@@ -59,9 +59,19 @@
 +// pl_map_dovi_metadata() (src/include/libplacebo/utils/libav_internal.h).
 +static const AVDOVIMetadata *get_dovi_p5_metadata(struct mp_image *mpi)
 +{
-+    if (!mpi || !mpi->dovi)
++    if (!mpi || mpi->params.no_dovi)
 +        return NULL;
-+    const AVDOVIMetadata *md = (const AVDOVIMetadata *)mpi->dovi->data;
++    // mp_image.dovi now holds pl_dovi_metadata, not AVDOVIMetadata. Read the
++    // original FFmpeg side data retained by mp_image_from_av_frame instead.
++    const AVDOVIMetadata *md = NULL;
++    for (int i = 0; i < mpi->num_ff_side_data; i++) {
++        if (mpi->ff_side_data[i].type == AV_FRAME_DATA_DOVI_METADATA) {
++            md = (const AVDOVIMetadata *)mpi->ff_side_data[i].buf->data;
++            break;
++        }
++    }
++    if (!md)
++        return NULL;
 +    const AVDOVIRpuDataHeader *hdr = av_dovi_get_header(md);
 +    // Profile 5 is the only profile whose RPU has vdr_rpu_profile 0 with a
 +    // full range base layer (the same guess dovi_tool makes). Profiles 7/8
@@ -69,7 +79,7 @@
 +    // correctly, so they are left alone.
 +    if (!hdr->disable_residual_flag || hdr->vdr_rpu_profile != 0 ||
 +        !hdr->bl_video_full_range_flag || hdr->bl_bit_depth < 8 ||
-+        hdr->bl_bit_depth > 16)
++        hdr->bl_bit_depth > 16 || hdr->coef_log2_denom > 62)
 +        return NULL;
 +    return md;
 +}
@@ -203,49 +213,44 @@
 +    }
 +    gl_sc_uniform_dynamic(sc);
 +    gl_sc_uniform_mat3(sc, "dv_lms2rgb", true, &lms2rgb[0][0]);
-+    pass_linearize(sc, MP_CSP_TRC_PQ);
++    pass_linearize(sc, PL_COLOR_TRC_PQ);
 +    GLSL(color.rgb = mat3(dv_lms2rgb) * color.rgb;)
-+    pass_delinearize(sc, MP_CSP_TRC_PQ);
++    pass_delinearize(sc, PL_COLOR_TRC_PQ);
 +
 +    // From here on the frame is ordinary PQ BT.2020 RGB, so the regular color
 +    // management (tone mapping, gamut mapping) takes over. Only the transfer
-+    // characteristics are updated: `space` also drives how pass_read_video()
++    // characteristics are updated: `repr.sys` also drives how pass_read_video()
 +    // reads the planes of the next frame and must stay YUV.
-+    p->image_params.color.primaries = MP_CSP_PRIM_BT_2020;
-+    p->image_params.color.gamma = MP_CSP_TRC_PQ;
-+    p->image_params.color.light = MP_CSP_LIGHT_DISPLAY;
++    p->image_params.color.primaries = PL_COLOR_PRIM_BT_2020;
++    p->image_params.color.transfer = PL_COLOR_TRC_PQ;
++    p->image_params.light = MP_CSP_LIGHT_DISPLAY;
 +    if (col->source_max_pq) {
-+        p->image_params.color.sig_peak =
-+            dovi_pq_eotf(col->source_max_pq / 4095.0f) * 10000.0f / MP_REF_WHITE;
++        p->image_params.color.hdr.max_luma =
++            dovi_pq_eotf(col->source_max_pq / 4095.0f) * 10000.0f;
 +    }
 +}
-+#endif
 +
  // yuv conversion, and any other conversions before main up/down-scaling
  static void pass_convert_yuv(struct gl_video *p)
  {
-@@ -2345,6 +2525,14 @@
+@@ -2559,6 +2742,12 @@ static void pass_convert_yuv(struct gl_video *p)
      if (p->color_swizzle[0])
          GLSLF("color = color.%s;\n", p->color_swizzle);
  
-+#if HAVE_GL_DOVI
 +    const AVDOVIMetadata *dovi = get_dovi_p5_metadata(p->image.mpi);
 +    if (dovi && !p->is_gray) {
 +        pass_dovi_p5(p, dovi);
 +        goto done;
 +    }
-+#endif
 +
      // Pre-colormatrix input gamma correction
-     if (cparams.color.space == MP_CSP_XYZ)
-         pass_linearize(p->sc, p->image_params.color.gamma);
-@@ -2404,6 +2592,9 @@
+     if (cparams.repr.sys == PL_COLOR_SYSTEM_XYZ)
+         pass_linearize(p->sc, p->image_params.color.transfer);
+@@ -2618,6 +2807,7 @@ static void pass_convert_yuv(struct gl_video *p)
                gl_sc_bvec(p->sc, 3));
      }
  
-+#if HAVE_GL_DOVI
 +done:
-+#endif
      p->components = 3;
-     if (!p->has_alpha || p->opts.alpha_mode == ALPHA_NO) {
+     if (!p->has_alpha) {
          GLSL(color.a = 1.0;)

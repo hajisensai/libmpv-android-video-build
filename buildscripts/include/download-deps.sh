@@ -42,6 +42,15 @@ mkdir -p deps && cd deps
 # libass
 [ ! -d libass ] && git clone --depth 1 --branch $v_libass https://github.com/libass/libass.git libass
 
+# lua
+if [ ! -d lua ]; then
+    $WGET "https://www.lua.org/ftp/lua-$v_lua.tar.gz"
+    echo "b9e2e4aad6789b3b63a056d442f7b39f0ecfca3ae0f1fc0ae4e9614401b69f4b  lua-$v_lua.tar.gz" | sha256sum -c -
+    mkdir lua
+    tar -xzf "lua-$v_lua.tar.gz" -C lua --strip-components=1
+    rm "lua-$v_lua.tar.gz"
+fi
+
 # shaderc
 mkdir -p shaderc
 cat >shaderc/README <<'HEREDOC'

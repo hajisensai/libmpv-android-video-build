@@ -24,6 +24,10 @@ grep -q ' T mpv_lavc_set_java_vm$' "$out/$abi.symbols.txt"
 for capability in discnav disc-navigation-state-json disc-menu-active; do
     grep -Fxq "$capability" "$out/$abi.strings.txt"
 done
+# Fushi user scripts (mpv Lua) need the Lua backend compiled in, not only the
+# load-script command: check both the meson flag and the linked Lua runtime.
+grep -Fq -- '-Dlua=lua' "$out/$abi.strings.txt"
+grep -Fxq 'Lua 5.2' "$out/$abi.strings.txt"
 "$bin/llvm-readelf" -h -d -l "$lib" > "$out/$abi.elf.txt"
 # Reuse the exact shipped helper (not libmpv) so the JNI event loop stays stable.
 case "$abi" in

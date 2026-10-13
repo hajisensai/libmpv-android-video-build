@@ -28,6 +28,8 @@ v_libplacebo=cee9b076f2c63104ccfd497fa79c39a867293ec4
 v_libogg=1.3.5
 v_libvorbis=1.3.7
 v_libvpx=1.13
+# Lua 5.2 (not LuaJIT): plain C, identical on all four ABIs; mpv accepts 5.1/5.2.
+v_lua=5.2.4
 
 
 ## Dependency tree
@@ -50,7 +52,7 @@ dep_shaderc=()
 dep_libbluray=(freetype libxml2)
 dep_libplacebo=()
 if [ -n "${ENCODERS_GPL+x}" ]; then
-	dep_mpv=(ffmpeg libass libbluray libplacebo fftools_ffi)
+	dep_mpv=(ffmpeg libass lua libbluray libplacebo fftools_ffi)
 else
-	dep_mpv=(ffmpeg libass libbluray libplacebo)
+	dep_mpv=(ffmpeg libass lua libbluray libplacebo)
 fi

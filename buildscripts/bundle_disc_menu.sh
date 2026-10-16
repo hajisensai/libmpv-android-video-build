@@ -28,6 +28,10 @@ done
 # load-script command: check both the meson flag and the linked Lua runtime.
 grep -Fq -- '-Dlua=lua' "$out/$abi.strings.txt"
 grep -Fxq 'Lua 5.2' "$out/$abi.strings.txt"
+# Fushi BUG-3453: laced Matroska audio without DefaultDuration (mkvmerge Opus)
+# must get per-frame timestamps, or dump-cache drops all but the first frame of
+# every lace. The patch's trace message proves it is compiled in.
+grep -Fq 'without DefaultDuration' "$out/$abi.strings.txt"
 "$bin/llvm-readelf" -h -d -l "$lib" > "$out/$abi.elf.txt"
 # Reuse the exact shipped helper (not libmpv) so the JNI event loop stays stable.
 case "$abi" in

@@ -1,7 +1,7 @@
 name: Disc menu native artifacts
 on:
   push:
-    branches: [codex/bluray-disc-menu, fushi/lua-enabled]
+    branches: [codex/bluray-disc-menu, fushi/lua-enabled, fushi/mkv-lace]
   workflow_dispatch:
 permissions:
   contents: read

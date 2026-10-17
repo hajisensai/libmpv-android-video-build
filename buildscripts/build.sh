@@ -18,6 +18,12 @@ loadarch () {
     unset CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
 
 	local apilvl=21
+	# Fushi unified FFmpeg: libmpv links the app's FFmpegKitNext libraries,
+	# which target API 24 (the app's minSdk) and reference API-24 libc symbols
+	# such as __write_chk; build every dependency at the same level.
+	if [ "${UNIFIED_FFMPEG:-1}" = 1 ]; then
+		apilvl=24
+	fi
 	# ndk_triple: what the toolchain actually is
 	# cc_triple: what Google pretends the toolchain is
 	if [ "$1" == "armv7l" ]; then

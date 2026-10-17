@@ -27,6 +27,9 @@ mkdir -p deps && cd deps
 # libx264
 [ ! -d libx264 ] && git clone --depth 1 https://code.videolan.org/videolan/x264.git --branch master libx264
 
+# Fushi unified FFmpeg: prebuilt dev prefix, installed by scripts/unified_ffmpeg.sh.
+mkdir -p unified_ffmpeg
+
 # ffmpeg
 [ ! -d ffmpeg ] && git clone --depth 1 --branch n$v_ffmpeg https://github.com/FFmpeg/FFmpeg.git ffmpeg
 

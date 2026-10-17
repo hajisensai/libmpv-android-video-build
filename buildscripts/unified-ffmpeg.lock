@@ -1,0 +1,8 @@
+# Fushi unified FFmpeg (hajisensai/fushi tool/ffmpeg-unified, FFmpeg 9.0.1):
+# per-ABI development prefixes of the FFmpegKitNext build whose lib*.so ship in
+# the app's AAR. bundle_unified.sh links libmpv against them dynamically.
+# Source run: hajisensai/fushi ffmpeg-unified-mobile.yml 39034160156.
+UNIFIED_FFMPEG_RELEASE_URL=https://github.com/hajisensai/libmpv-android-video-build/releases/download/unified-ffmpeg-9.0.1-r1
+UNIFIED_FFMPEG_SHA256_arm64_v8a=1feff002f97d575de0694ef13c0f8e46ef7d2ce43f6daa260ecd8a20e582e0ae
+UNIFIED_FFMPEG_SHA256_armeabi_v7a=39ae536b14de4a520829dd1b142cbcbdc13c037ac94bf1e1595a08187c550990
+UNIFIED_FFMPEG_SHA256_x86_64=f39626bd1aabbeb53b1cbf7982d483cf8c362fb44507194070ce35e85939f5fd

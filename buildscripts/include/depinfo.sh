@@ -51,8 +51,15 @@ dep_lua=()
 dep_shaderc=()
 dep_libbluray=(freetype libxml2)
 dep_libplacebo=()
+dep_unified_ffmpeg=()
 if [ -n "${ENCODERS_GPL+x}" ]; then
 	dep_mpv=(ffmpeg libass lua libbluray libplacebo fftools_ffi)
 else
-	dep_mpv=(ffmpeg libass lua libbluray libplacebo)
+	# Fushi unified FFmpeg: link the app's shared FFmpeg (scripts/unified_ffmpeg.sh)
+	# instead of building a static private copy; UNIFIED_FFMPEG=0 keeps the old path.
+	if [ "${UNIFIED_FFMPEG:-1}" = 1 ]; then
+		dep_mpv=(unified_ffmpeg libass lua libbluray libplacebo)
+	else
+		dep_mpv=(ffmpeg libass lua libbluray libplacebo)
+	fi
 fi

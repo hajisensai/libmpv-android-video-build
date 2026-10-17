@@ -32,6 +32,9 @@ grep -Fxq 'Lua 5.2' "$out/$abi.strings.txt"
 # must get per-frame timestamps, or dump-cache drops all but the first frame of
 # every lace. The patch's trace message proves it is compiled in.
 grep -Fq 'without DefaultDuration' "$out/$abi.strings.txt"
+# Fushi BUG-3454: Matroska video has no DTS; without the recorder patch
+# dump-cache loses every reordered (B-)frame. Its debug message proves it.
+grep -Fq 'Deriving missing DTS' "$out/$abi.strings.txt"
 "$bin/llvm-readelf" -h -d -l "$lib" > "$out/$abi.elf.txt"
 # Reuse the exact shipped helper (not libmpv) so the JNI event loop stays stable.
 case "$abi" in

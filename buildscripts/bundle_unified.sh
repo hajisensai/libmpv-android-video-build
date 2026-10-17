@@ -48,11 +48,12 @@ for ff in libavcodec libavformat libavutil libavfilter libswresample libswscale;
     grep -Eq "\(NEEDED\)[[:space:]]+Shared library: \[$ff\.so\]" "$out/$abi.elf.txt" ||
         { echo "libmpv.so does not NEED $ff.so (shared unified FFmpeg)" >&2; exit 3; }
 done
-if grep -Eq ' T (avcodec_send_packet|avformat_open_input|av_log_set_callback)$' "$out/$abi.symbols.txt"; then
+# Imports carry the FFmpeg symbol version (avcodec_send_packet@LIBAVCODEC_63).
+if grep -Eq ' T (avcodec_send_packet|avformat_open_input|av_log_set_callback)(@|$)' "$out/$abi.symbols.txt"; then
     echo "libmpv.so defines FFmpeg symbols itself: a private FFmpeg was linked in" >&2
     exit 3
 fi
-grep -Eq ' U avcodec_send_packet$' "$out/$abi.symbols.txt" ||
+grep -Eq ' U avcodec_send_packet(@|$)' "$out/$abi.symbols.txt" ||
     { echo "libmpv.so does not import avcodec_send_packet" >&2; exit 3; }
 
 "$bin/llvm-strings" "$lib" > "$out/$abi.strings.txt"

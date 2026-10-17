@@ -45,7 +45,7 @@ grep -q ' T mpv_lavc_set_java_vm$' "$out/$abi.symbols.txt"
 # Unified FFmpeg: libmpv must NEED the AAR's plain-named FFmpeg libraries and
 # must not carry an FFmpeg copy of its own.
 for ff in libavcodec libavformat libavutil libavfilter libswresample libswscale; do
-    grep -Fq "(NEEDED)             Shared library: [$ff.so]" "$out/$abi.elf.txt" ||
+    grep -Eq "\(NEEDED\)[[:space:]]+Shared library: \[$ff\.so\]" "$out/$abi.elf.txt" ||
         { echo "libmpv.so does not NEED $ff.so (shared unified FFmpeg)" >&2; exit 3; }
 done
 if grep -Eq ' T (avcodec_send_packet|avformat_open_input|av_log_set_callback)$' "$out/$abi.symbols.txt"; then
